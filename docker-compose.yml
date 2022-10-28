@@ -1,0 +1,73 @@
+version: "3.7"
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: paopao
+      MYSQL_USER: paopao
+      MYSQL_PASSWORD: paopao
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+    volumes:
+      - ./scripts/paopao-mysql.sql:/docker-entrypoint-initdb.d/paopao.sql
+      - ./data/mysql/data:/var/lib/mysql
+    ports:
+      - 10020:3306
+    networks:
+      - paopao-network
+      # paopao-network:
+      #   aliases:
+      #     - paopao-database
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - 10010:6379
+    networks:
+      - paopao-network
+  db-migrate:
+    image: migrate/migrate
+    networks:
+      - paopao-network
+    volumes:
+      - ./scripts/migration:/etc/migrations
+    command:
+      [
+        "-source",
+        "file:///etc/migrations",
+        "-database",
+        "mysql://paopao:paopao@tcp(paopao-network:3306)/paopao",
+        "up"
+      ]
+    links:
+      - db
+    restart: never
+  zinc:
+    image: public.ecr.aws/zinclabs/zinc:latest
+    user: root
+    restart: alwaysP
+    ports:
+      - 10030:4080
+    volumes:
+      - ./data/zinc/data:/data
+    environment:
+      ZINC_FIRST_ADMIN_USER: admin
+      ZINC_FIRST_ADMIN_PASSWORD: admin
+      DATA_PATH: /data
+    networks:
+      - paopao-network
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    depends_on:
+      - db
+    ports:
+      - 10040:80
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=paopao
+      - PMA_PASSWORD=paopao
+    networks:
+      - paopao-network
+networks:
+  paopao-network:
+    driver: bridge
