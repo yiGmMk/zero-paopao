@@ -10,7 +10,7 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: yes
     volumes:
       - ./scripts/paopao-mysql.sql:/docker-entrypoint-initdb.d/paopao.sql
-      - ./data/mysql/data:/var/lib/mysql
+      - ./.data/mysql/data:/var/lib/mysql
     ports:
       - 10020:3306
     networks:
@@ -41,15 +41,16 @@ services:
       ]
     links:
       - db
-    restart: never
+    restart: "no"
+    # no，on-failure[:times]，always，unless-stopped
   zinc:
     image: public.ecr.aws/zinclabs/zinc:latest
     user: root
-    restart: alwaysP
+    restart: always
     ports:
       - 10030:4080
     volumes:
-      - ./data/zinc/data:/data
+      - ./.data/zinc/data:/data
     environment:
       ZINC_FIRST_ADMIN_USER: admin
       ZINC_FIRST_ADMIN_PASSWORD: admin
