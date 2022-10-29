@@ -1,3 +1,19 @@
 Name: post-api
 Host: 0.0.0.0
-Port: 8888
+Port: 8008
+Timeout: 30000
+Log:
+  Mode: console
+Mysql:
+  DataSource: paopao:paopao@tcp(localhost:10020)/paopao?charset=utf8mb4&parseTime=True
+CacheRedis:
+  - Host: localhost:10010
+    Pass:
+    Type: node
+# APP基础设置项
+App:
+  AttachmentIncomeRate: 0.8
+  MaxCommentCount: 10
+  DefaultContextTimeout: 60
+  DefaultPageSize: 10
+  MaxPageSize: 100
