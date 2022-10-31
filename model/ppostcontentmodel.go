@@ -44,15 +44,15 @@ func (m *defaultPPostContentModel) Fetch(ctx context.Context, rowBuilder squirre
 
 	query, values, err := rowBuilder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "postcontent sql")
 	}
 
 	var resp []*PPostContent
-	err = m.conn.QueryRowCtx(ctx, &resp, query, values...)
+	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
 	default:
-		return nil, errors.Wrapf(err, "fetch post_content")
+		return nil, errors.Wrapf(err, "query post_content")
 	}
 }

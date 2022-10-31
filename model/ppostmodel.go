@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 
 	"github.com/Masterminds/squirrel"
@@ -44,15 +45,15 @@ func (m *defaultPPostModel) Fetch(ctx context.Context, rowBuilder squirrel.Selec
 
 	query, values, err := rowBuilder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "post sql")
 	}
 
 	var resp []*PPost
-	err = m.conn.QueryRowCtx(ctx, &resp, query, values...)
+	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
 	default:
-		return nil, err
+		return nil, errors.Wrapf(err, "query post:%s", query)
 	}
 }

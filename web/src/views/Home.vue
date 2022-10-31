@@ -5,12 +5,8 @@
         <n-list class="main-content-wrap" bordered>
             <template #footer>
                 <div class="pagination-wrap" v-if="totalPage > 0">
-                    <n-pagination
-                        :page="page"
-                        @update:page="updatePage"
-                        :page-slot="!store.state.collapsedRight ? 8 : 5"
-                        :page-count="totalPage"
-                    />
+                    <n-pagination :page="page" @update:page="updatePage"
+                        :page-slot="!store.state.collapsedRight ? 8 : 5" :page-count="totalPage" />
                 </div>
             </template>
             <n-list-item>
@@ -66,8 +62,8 @@ const title = computed(() => {
 const loadPosts = () => {
     loading.value = true;
     getPosts({
-        query: route.query.q ? decodeURIComponent(route.query.q as string) : null,
-        type: route.query.t as string,
+        query: route.query.q ? decodeURIComponent(route.query.q as string) : "",
+        type: route.query.t ? route.query.t as string : "search",// TODO 改回 route.query.t
         page: page.value,
         page_size: pageSize.value,
     })
@@ -94,7 +90,7 @@ const onPostSuccess = (post: Item.PostProps) => {
         });
         return;
     }
-    
+
     // 如果实在第一页，就地插入新推文到文章列表中
     let items = [];
     let length = list.value.length;
@@ -102,15 +98,15 @@ const onPostSuccess = (post: Item.PostProps) => {
         length--;
     }
     var i = 0;
-    for (;i < length; i++) {
+    for (; i < length; i++) {
         let item: Item.PostProps = list.value[i];
         if (!item.is_top) {
             break;
         }
-        items.push(item);  
+        items.push(item);
     }
     items.push(post);
-    for (;i < length; i++) {
+    for (; i < length; i++) {
         items.push(list.value[i]);
     }
     list.value = items;

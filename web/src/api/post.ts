@@ -1,36 +1,37 @@
 import { request } from '@/utils/request';
 
-/** 获取动态列表 */
-export const getPosts = (params: NetParams.PostGetPosts): Promise<NetReq.PostGetPosts> => {
+/*get 请求使用params(query参数),post使用data(数据在body中) */
+/** 获取动态列表 get*/
+export const getPosts = (data: NetParams.PostGetPosts): Promise<NetReq.PostGetPosts> => {
     return request({
-        method: 'get',
+        method: 'post',
         url: '/v1/posts',
-        params
+        data
     });
 };
 
-/** 获取标签列表 */
-export const getTags = (params: NetParams.PostGetTags): Promise<NetReq.PostGetTags> => {
+/** 获取标签列表 get*/
+export const getTags = (data: NetParams.PostGetTags): Promise<NetReq.PostGetTags> => {
     return request({
-        method: 'get',
+        method: 'post',
         url: '/v1/tags',
-        params
+        data
     });
 };
 
-/** 获取动态详情 */
+/** 获取动态详情 get*/
 export const getPost = (params: NetParams.PostGetPost): Promise<NetReq.PostGetPost> => {
     return request({
-        method: 'get',
+        method: 'post',
         url: '/v1/post',
         params
     });
 };
 
-/** 获取动态点赞状态 */
+/** 获取动态点赞状态 get */
 export const getPostStar = (params: NetParams.PostPostStar): Promise<NetReq.PostGetPostStar> => {
     return request({
-        method: 'get',
+        method: 'post',
         url: '/v1/post/star',
         params
     });

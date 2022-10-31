@@ -1,0 +1,469 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "",
+    "version": ""
+  },
+  "host": "172.28.192.100:8008",
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/posts": {
+      "post": {
+        "summary": "获取动态",
+        "operationId": "GetPosts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetPostsResp"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetPostsReq"
+            }
+          }
+        ],
+        "requestBody": {},
+        "tags": [
+          "post-api"
+        ]
+      }
+    },
+    "/v1/tags": {
+      "post": {
+        "summary": "获取tag",
+        "operationId": "GetTags",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetTagResp"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetTagReq"
+            }
+          }
+        ],
+        "requestBody": {},
+        "tags": [
+          "post-api"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "GetPostsReq": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "GetPostsReq",
+      "required": [
+        "query",
+        "type",
+        "page",
+        "page_size"
+      ]
+    },
+    "GetPostsResp": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PostFormated"
+          }
+        },
+        "pager": {
+          "$ref": "#/definitions/Pager"
+        }
+      },
+      "title": "GetPostsResp",
+      "required": [
+        "list",
+        "pager"
+      ]
+    },
+    "GetTagReq": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "num": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "GetTagReq",
+      "required": [
+        "type",
+        "num"
+      ]
+    },
+    "GetTagResp": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TagFormated"
+          }
+        }
+      },
+      "title": "GetTagResp",
+      "required": [
+        "code",
+        "msg",
+        "data"
+      ]
+    },
+    "PTag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 标签ID"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 创建者ID"
+        },
+        "tag": {
+          "type": "string",
+          "description": " 标签名"
+        },
+        "quote_num": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 引用数"
+        },
+        "created_on": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 创建时间"
+        },
+        "modified_on": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 修改时间"
+        },
+        "deleted_on": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 删除时间"
+        },
+        "is_del": {
+          "type": "integer",
+          "format": "int64",
+          "description": " 是否删除 0 为未删除、1 为已删除"
+        }
+      },
+      "title": "PTag",
+      "required": [
+        "id",
+        "user_id",
+        "tag",
+        "quote_num",
+        "created_on",
+        "modified_on",
+        "deleted_on",
+        "is_del"
+      ]
+    },
+    "Pager": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "total_rows": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Pager",
+      "required": [
+        "page",
+        "page_size",
+        "total_rows"
+      ]
+    },
+    "PagerProps": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "total_rows": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "PagerProps",
+      "required": [
+        "page",
+        "page_size",
+        "total_rows"
+      ]
+    },
+    "PostContentFormated": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "post_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "content": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sort": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "title": "PostContentFormated",
+      "required": [
+        "id",
+        "post_id",
+        "content",
+        "type",
+        "sort"
+      ]
+    },
+    "PostFormated": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "user": {
+          "$ref": "#/definitions/UserFormated"
+        },
+        "contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PostContentFormated"
+          }
+        },
+        "comment_count": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "collection_count": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "upvote_count": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "visibility": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "is_top": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "is_essence": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "is_lock": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "latest_replied_on": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "created_on": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "modified_on": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "tags": {
+          "$ref": "#/definitions/mapstringint8"
+        },
+        "attachment_price": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ip_loc": {
+          "type": "string"
+        }
+      },
+      "title": "PostFormated",
+      "required": [
+        "id",
+        "user_id",
+        "user",
+        "contents",
+        "comment_count",
+        "collection_count",
+        "upvote_count",
+        "visibility",
+        "is_top",
+        "is_essence",
+        "is_lock",
+        "latest_replied_on",
+        "created_on",
+        "modified_on",
+        "tags",
+        "attachment_price",
+        "ip_loc"
+      ]
+    },
+    "TagFormated": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "user": {
+          "$ref": "#/definitions/UserFormated"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "quote_num": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "title": "TagFormated",
+      "required": [
+        "id",
+        "user_id",
+        "user",
+        "tag",
+        "quote_num"
+      ]
+    },
+    "UserFormated": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "is_admin": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      },
+      "title": "UserFormated",
+      "required": [
+        "id",
+        "nickname",
+        "username",
+        "status",
+        "avatar",
+        "is_admin"
+      ]
+    }
+  },
+  "securityDefinitions": {
+    "apiKey": {
+      "type": "apiKey",
+      "description": "Enter JWT Bearer token **_only_**",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "apiKey": []
+    }
+  ]
+}

@@ -13,9 +13,14 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodGet,
+				Method:  http.MethodPost,
 				Path:    "/v1/posts",
 				Handler: GetPostsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/v1/tags",
+				Handler: GetTagsHandler(serverCtx),
 			},
 		},
 	)

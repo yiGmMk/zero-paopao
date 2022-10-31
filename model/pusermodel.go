@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -31,7 +32,7 @@ func NewPUserModel(conn sqlx.SqlConn) PUserModel {
 }
 
 func (m *defaultPUserModel) RowBuilder() squirrel.SelectBuilder {
-	return squirrel.Select(pPostRows).From(m.table)
+	return squirrel.Select(pUserRows).From(m.table)
 }
 
 func (m *defaultPUserModel) Fetch(ctx context.Context, rowBuilder squirrel.SelectBuilder, offset, limit uint64) (
@@ -42,15 +43,15 @@ func (m *defaultPUserModel) Fetch(ctx context.Context, rowBuilder squirrel.Selec
 
 	query, values, err := rowBuilder.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "user sql")
 	}
 
 	var resp []*PUser
-	err = m.conn.QueryRowCtx(ctx, &resp, query, values...)
+	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
 	default:
-		return nil, err
+		return nil, errors.Wrapf(err, "query user:%s", query)
 	}
 }

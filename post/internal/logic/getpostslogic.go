@@ -3,7 +3,7 @@ package logic
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	"github.com/Masterminds/squirrel"
 
 	"github.com/jinzhu/copier"
 	"github.com/yiGmMk/zero-paopao/model"
@@ -46,19 +46,33 @@ func (l *GetPostsLogic) IndexPosts(req *types.GetPostsReq) (resp *types.GetPosts
 		return
 	}
 
+	resp = &types.GetPostsResp{}
 	resp.List = formatData
-
+	resp.Pager.Page = req.Page
+	resp.Pager.PageSize = req.PageSize
+	resp.Pager.TotalRows = len(resp.List)
 	return
 }
 
 func (l *GetPostsLogic) getPostContentsByIDs(ids []int64) ([]*model.PPostContent, error) {
-	b := l.svcCtx.PostContentModel.RowBuilder().Where("post_id in ?", ids).OrderBy("sort ASC")
-	return l.svcCtx.PostContentModel.Fetch(l.ctx, b, 0, 0)
+	b := l.svcCtx.PostContentModel.RowBuilder().
+		Where(squirrel.Eq{"post_id": ids}).OrderBy("sort ASC")
+	data, err := l.svcCtx.PostContentModel.Fetch(l.ctx, b, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (l *GetPostsLogic) getUsersByIDs(ids []int64) ([]*model.PUser, error) {
-	b := l.svcCtx.UserModel.RowBuilder().Where("id in ?", ids)
-	return l.svcCtx.UserModel.Fetch(l.ctx, b, 0, 0)
+	b := l.svcCtx.UserModel.RowBuilder().
+		Where(squirrel.Eq{"id": ids})
+
+	data, err := l.svcCtx.UserModel.Fetch(l.ctx, b, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // 动态数据组装
@@ -106,19 +120,20 @@ func (l *GetPostsLogic) MergePosts(posts []*model.PPost) ([]*types.PostFormated,
 }
 
 func (l *GetPostsLogic) GetPosts(req *types.GetPostsReq) (resp *types.GetPostsResp, err error) {
-	if req.Query == "" && req.Type == "search" {
-		resp, err = l.IndexPosts(req)
-		if err != nil {
-			l.Logger.WithContext(l.ctx).Errorf("get post:%+v", err)
-		}
-		return
-	} else {
-		user, ok := l.ctx.Value("USER").(*model.PUser)
-		if !ok {
-			err = errors.New("user info  is nil")
-			return
-		}
-		l.Logger.Infof("%+v", user)
+	l.Logger.Infof("%+v", *req)
+	//if req.Query == "" && req.Type == "search" {
+	resp, err = l.IndexPosts(req)
+	if err != nil {
+		l.Logger.WithContext(l.ctx).Errorf("get post:%+v", err)
 	}
 	return
+	// } else {
+	// 	user, ok := l.ctx.Value("USER").(*model.PUser)
+	// 	if !ok {
+	// 		err = errors.New("user info  is nil")
+	// 		return
+	// 	}
+	// 	l.Logger.Infof("%+v", user)
+	// }
+	//return
 }

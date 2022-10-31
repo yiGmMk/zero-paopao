@@ -12,6 +12,7 @@ type ServiceContext struct {
 	PostModel        model.PPostModel
 	PostContentModel model.PPostContentModel
 	UserModel        model.PUserModel
+	TagModel         model.PTagModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -20,5 +21,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		PostModel:        model.NewPPostModel(sqlx.NewMysql(c.Mysql.DataSource)),
 		PostContentModel: model.NewPPostContentModel(sqlx.NewMysql(c.Mysql.DataSource)),
 		UserModel:        model.NewPUserModel(sqlx.NewMysql(c.Mysql.DataSource)),
+		TagModel:         model.NewPTagModel(sqlx.NewMysql(c.Mysql.DataSource)),
 	}
 }

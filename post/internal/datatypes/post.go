@@ -20,7 +20,7 @@ func PostFormat(p *model.PPost) *types.PostFormated {
 		CommentCount:    p.CommentCount,
 		CollectionCount: p.CollectionCount,
 		UpvoteCount:     p.UpvoteCount,
-		Visibility:      uint8(p.Visibility),
+		Visibility:      p.Visibility,
 		IsTop:           p.IsTop,
 		IsEssence:       p.IsEssence,
 		IsLock:          p.IsLock,

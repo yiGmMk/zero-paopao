@@ -4,6 +4,7 @@ Port: 8008
 Timeout: 30000
 Log:
   Mode: console
+  Encoding: plain
 Mysql:
   DataSource: paopao:paopao@tcp(localhost:10020)/paopao?charset=utf8mb4&parseTime=True
 CacheRedis:

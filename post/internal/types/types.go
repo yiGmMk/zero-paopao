@@ -8,7 +8,7 @@ type PagerProps struct {
 }
 
 type GetPostsReq struct {
-	Query    string `json:"query"`
+	Query    string `json:"query,omitempty"`
 	Type     string `json:"type"`
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
@@ -16,7 +16,7 @@ type GetPostsReq struct {
 
 type GetPostsResp struct {
 	List  []*PostFormated `json:"list"`
-	Pager Pager          `json:"pager"`
+	Pager Pager           `json:"pager"`
 }
 
 type UserFormated struct {
@@ -44,7 +44,7 @@ type PostFormated struct {
 	CommentCount    int64                  `json:"comment_count"`
 	CollectionCount int64                  `json:"collection_count"`
 	UpvoteCount     int64                  `json:"upvote_count"`
-	Visibility      uint8                  `json:"visibility"`
+	Visibility      int64                  `json:"visibility"`
 	IsTop           int64                  `json:"is_top"`
 	IsEssence       int64                  `json:"is_essence"`
 	IsLock          int64                  `json:"is_lock"`
@@ -62,13 +62,32 @@ type Pager struct {
 	TotalRows int `json:"total_rows"`
 }
 
+type GetTagReq struct {
+	Type string `json:"type"`
+	Num  int    `json:"num"`
+}
+
+type GetTagResp struct {
+	Code int            `json:"code"`
+	Msg  string         `json:"msg"`
+	Data []*TagFormated `json:"data"`
+}
+
+type TagFormated struct {
+	ID       int64         `json:"id"`
+	UserID   int64         `json:"user_id"`
+	User     *UserFormated `json:"user"`
+	Tag      string        `json:"tag"`
+	QuoteNum int64         `json:"quote_num"`
+}
+
 type PTag struct {
-	Id         int64  `db:"id"`          // 标签ID
-	UserId     int64  `db:"user_id"`     // 创建者ID
-	Tag        string `db:"tag"`         // 标签名
-	QuoteNum   int64  `db:"quote_num"`   // 引用数
-	CreatedOn  int64  `db:"created_on"`  // 创建时间
-	ModifiedOn int64  `db:"modified_on"` // 修改时间
-	DeletedOn  int64  `db:"deleted_on"`  // 删除时间
-	IsDel      int64  `db:"is_del"`      // 是否删除 0 为未删除、1 为已删除
+	Id         int64  `json:"id"`          // 标签ID
+	UserId     int64  `json:"user_id"`     // 创建者ID
+	Tag        string `json:"tag"`         // 标签名
+	QuoteNum   int64  `json:"quote_num"`   // 引用数
+	CreatedOn  int64  `json:"created_on"`  // 创建时间
+	ModifiedOn int64  `json:"modified_on"` // 修改时间
+	DeletedOn  int64  `json:"deleted_on"`  // 删除时间
+	IsDel      int64  `json:"is_del"`      // 是否删除 0 为未删除、1 为已删除
 }
