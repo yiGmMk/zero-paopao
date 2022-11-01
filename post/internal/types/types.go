@@ -8,10 +8,10 @@ type PagerProps struct {
 }
 
 type GetPostsReq struct {
-	Query    string `json:"query,omitempty"`
-	Type     string `json:"type"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
+	Query    string `form:"query,omitempty"`
+	Type     string `form:"type"`
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
 }
 
 type GetPostsResp struct {
@@ -63,8 +63,8 @@ type Pager struct {
 }
 
 type GetTagReq struct {
-	Type string `json:"type"`
-	Num  int    `json:"num"`
+	Type string `form:"type"`
+	Num  int    `form:"num"`
 }
 
 type GetTagResp struct {

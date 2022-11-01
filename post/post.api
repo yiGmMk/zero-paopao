@@ -13,10 +13,10 @@ type PagerProps {
 }
 
 type GetPostsReq {
-	Query    string `json:"query,omitempty"`
-	Type     string `json:"type"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
+	Query    string `form:"query,omitempty"`
+	Type     string `form:"type"`
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
 }
 
 type GetPostsResp {
@@ -72,19 +72,19 @@ service post-api {
 		summary: 获取动态
 	)
 	@handler GetPosts
-	post /v1/posts(GetPostsReq) returns (GetPostsResp)
+	get /v1/posts(GetPostsReq) returns (GetPostsResp)
 	
 	@doc(
 		summary: 获取tag
 	)
 	@handler GetTags
-	post /v1/tags(GetTagReq) returns(GetTagResp)
+	get /v1/tags(GetTagReq) returns(GetTagResp)
 }
 
 type (
 	GetTagReq {
-		Type string `json:"type"`
-		Num  int    `json:"num"`
+		Type string `form:"type"`
+		Num  int    `form:"num"`
 	}
 
 	GetTagResp {

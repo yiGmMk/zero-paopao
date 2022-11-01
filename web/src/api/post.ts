@@ -2,27 +2,27 @@ import { request } from '@/utils/request';
 
 /*get 请求使用params(query参数),post使用data(数据在body中) */
 /** 获取动态列表 get*/
-export const getPosts = (data: NetParams.PostGetPosts): Promise<NetReq.PostGetPosts> => {
+export const getPosts = (params: NetParams.PostGetPosts): Promise<NetReq.PostGetPosts> => {
     return request({
-        method: 'post',
+        method: 'get',
         url: '/v1/posts',
-        data
+        params
     });
 };
 
 /** 获取标签列表 get*/
-export const getTags = (data: NetParams.PostGetTags): Promise<NetReq.PostGetTags> => {
+export const getTags = (params: NetParams.PostGetTags): Promise<NetReq.PostGetTags> => {
     return request({
-        method: 'post',
+        method: 'get',
         url: '/v1/tags',
-        data
+        params
     });
 };
 
 /** 获取动态详情 get*/
 export const getPost = (params: NetParams.PostGetPost): Promise<NetReq.PostGetPost> => {
     return request({
-        method: 'post',
+        method: 'get',
         url: '/v1/post',
         params
     });
@@ -31,7 +31,7 @@ export const getPost = (params: NetParams.PostGetPost): Promise<NetReq.PostGetPo
 /** 获取动态点赞状态 get */
 export const getPostStar = (params: NetParams.PostPostStar): Promise<NetReq.PostGetPostStar> => {
     return request({
-        method: 'post',
+        method: 'get',
         url: '/v1/post/star',
         params
     });
