@@ -17,6 +17,35 @@
     "application/json"
   ],
   "paths": {
+    "/v1/auth/regiter": {
+      "post": {
+        "summary": "注册",
+        "operationId": "UserRegister",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/UserRegisterRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " 注册",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserRegisterReq"
+            }
+          }
+        ],
+        "requestBody": {},
+        "tags": [
+          "post-api"
+        ]
+      }
+    },
     "/v1/posts": {
       "get": {
         "summary": "获取动态",
@@ -473,6 +502,39 @@
         "status",
         "avatar",
         "is_admin"
+      ]
+    },
+    "UserRegisterReq": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "title": "UserRegisterReq",
+      "required": [
+        "username",
+        "password"
+      ]
+    },
+    "UserRegisterRes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "title": "UserRegisterRes",
+      "required": [
+        "id",
+        "username"
       ]
     }
   },

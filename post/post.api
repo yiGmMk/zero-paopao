@@ -12,17 +12,47 @@ type PagerProps {
 	TotalRows int `json:"total_rows"`
 }
 
-type GetPostsReq {
-	Query    string `form:"query,omitempty"`
-	Type     string `form:"type"`
-	Page     int    `form:"page"`
-	PageSize int    `form:"page_size"`
-}
+type (
+	GetPostsReq {
+		Query    string `form:"query,omitempty"`
+		Type     string `form:"type"`
+		Page     int    `form:"page"`
+		PageSize int    `form:"page_size"`
+	}
 
-type GetPostsResp {
-	List  []*PostFormated `json:"list"`
-	Pager Pager           `json:"pager"`
-}
+	GetPostsResp {
+		List  []*PostFormated `json:"list"`
+		Pager Pager           `json:"pager"`
+	}
+
+	PostContentFormated {
+		ID      int64  `json:"id"`
+		PostID  int64  `json:"post_id"`
+		Content string `json:"content"`
+		Type    int    `json:"type"`
+		Sort    int64  `json:"sort"`
+	}
+
+	PostFormated {
+		ID              int64                  `json:"id"`
+		UserID          int64                  `json:"user_id"`
+		User            *UserFormated          `json:"user"`
+		Contents        []*PostContentFormated `json:"contents"`
+		CommentCount    int64                  `json:"comment_count"`
+		CollectionCount int64                  `json:"collection_count"`
+		UpvoteCount     int64                  `json:"upvote_count"`
+		Visibility      int64                  `json:"visibility"`
+		IsTop           int64                  `json:"is_top"`
+		IsEssence       int64                  `json:"is_essence"`
+		IsLock          int64                  `json:"is_lock"`
+		LatestRepliedOn int64                  `json:"latest_replied_on"`
+		CreatedOn       int64                  `json:"created_on"`
+		ModifiedOn      int64                  `json:"modified_on"`
+		Tags            map[string]int8        `json:"tags"`
+		AttachmentPrice int64                  `json:"attachment_price"`
+		IPLoc           string                 `json:"ip_loc"`
+	}
+)
 
 type UserFormated {
 	ID       int64  `json:"id"`
@@ -33,55 +63,14 @@ type UserFormated {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
-type PostContentFormated {
-	ID      int64  `json:"id"`
-	PostID  int64  `json:"post_id"`
-	Content string `json:"content"`
-	Type    int    `json:"type"`
-	Sort    int64  `json:"sort"`
-}
-
-type PostFormated {
-	ID              int64                  `json:"id"`
-	UserID          int64                  `json:"user_id"`
-	User            *UserFormated          `json:"user"`
-	Contents        []*PostContentFormated `json:"contents"`
-	CommentCount    int64                  `json:"comment_count"`
-	CollectionCount int64                  `json:"collection_count"`
-	UpvoteCount     int64                  `json:"upvote_count"`
-	Visibility      int64                  `json:"visibility"`
-	IsTop           int64                  `json:"is_top"`
-	IsEssence       int64                  `json:"is_essence"`
-	IsLock          int64                  `json:"is_lock"`
-	LatestRepliedOn int64                  `json:"latest_replied_on"`
-	CreatedOn       int64                  `json:"created_on"`
-	ModifiedOn      int64                  `json:"modified_on"`
-	Tags            map[string]int8        `json:"tags"`
-	AttachmentPrice int64                  `json:"attachment_price"`
-	IPLoc           string                 `json:"ip_loc"`
-}
-
 type Pager {
 	Page      int `json:"page"`
 	PageSize  int `json:"page_size"`
 	TotalRows int `json:"total_rows"`
 }
 
-service post-api {
-	@doc(
-		summary: 获取动态
-	)
-	@handler GetPosts
-	get /v1/posts(GetPostsReq) returns (GetPostsResp)
-	
-	@doc(
-		summary: 获取tag
-	)
-	@handler GetTags
-	get /v1/tags(GetTagReq) returns(GetTagResp)
-}
-
 type (
+	// 获取tag
 	GetTagReq {
 		Type string `form:"type"`
 		Num  int    `form:"num"`
@@ -111,4 +100,37 @@ type PTag {
 	ModifiedOn int64  `json:"modified_on"` // 修改时间
 	DeletedOn  int64  `json:"deleted_on"`  // 删除时间
 	IsDel      int64  `json:"is_del"`      // 是否删除 0 为未删除、1 为已删除
+}
+
+type (
+	// 注册
+	UserRegisterReq {
+		Username string `json:"username" valid:"required"`
+		Password string `json:"password" valid:"required"`
+	}
+	UserRegisterRes {
+		Id       int64  `json:"id"`
+		Username string `json:"username"`
+	}
+)
+
+service post-api {
+	@doc(
+		summary: 获取动态
+	)
+	@handler GetPosts
+	get /v1/posts(GetPostsReq) returns (GetPostsResp)
+
+	@doc(
+		summary: 获取tag
+	)
+	@handler GetTags
+	get /v1/tags(GetTagReq) returns(GetTagResp)
+
+	@doc(
+		summary: 注册
+	)
+	@handler UserRegister
+	post /v1/auth/regiter(UserRegisterReq) returns(UserRegisterRes)
+
 }

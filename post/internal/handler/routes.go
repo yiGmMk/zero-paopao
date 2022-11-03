@@ -22,6 +22,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/v1/tags",
 				Handler: GetTagsHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/v1/auth/regiter",
+				Handler: UserRegisterHandler(serverCtx),
+			},
 		},
 	)
 }

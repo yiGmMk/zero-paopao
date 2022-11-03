@@ -19,15 +19,6 @@ type GetPostsResp struct {
 	Pager Pager           `json:"pager"`
 }
 
-type UserFormated struct {
-	ID       int64  `json:"id"`
-	Nickname string `json:"nickname"`
-	Username string `json:"username"`
-	Status   int    `json:"status"`
-	Avatar   string `json:"avatar"`
-	IsAdmin  bool   `json:"is_admin"`
-}
-
 type PostContentFormated struct {
 	ID      int64  `json:"id"`
 	PostID  int64  `json:"post_id"`
@@ -54,6 +45,15 @@ type PostFormated struct {
 	Tags            map[string]int8        `json:"tags"`
 	AttachmentPrice int64                  `json:"attachment_price"`
 	IPLoc           string                 `json:"ip_loc"`
+}
+
+type UserFormated struct {
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
+	Username string `json:"username"`
+	Status   int    `json:"status"`
+	Avatar   string `json:"avatar"`
+	IsAdmin  bool   `json:"is_admin"`
 }
 
 type Pager struct {
@@ -90,4 +90,14 @@ type PTag struct {
 	ModifiedOn int64  `json:"modified_on"` // 修改时间
 	DeletedOn  int64  `json:"deleted_on"`  // 删除时间
 	IsDel      int64  `json:"is_del"`      // 是否删除 0 为未删除、1 为已删除
+}
+
+type UserRegisterReq struct {
+	Username string `json:"username" valid:"required"`
+	Password string `json:"password"`
+}
+
+type UserRegisterRes struct {
+	Id       int64  `json:"id"`
+	Username string `json:"username"`
 }
