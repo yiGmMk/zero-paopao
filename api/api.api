@@ -114,23 +114,23 @@ type (
 	}
 )
 
-service post-api {
+service api {
 	@doc(
 		summary: 获取动态
 	)
 	@handler GetPosts
 	get /v1/posts(GetPostsReq) returns (GetPostsResp)
-
+	
 	@doc(
 		summary: 获取tag
 	)
 	@handler GetTags
 	get /v1/tags(GetTagReq) returns(GetTagResp)
-
+	
 	@doc(
 		summary: 注册
 	)
 	@handler UserRegister
 	post /v1/auth/regiter(UserRegisterReq) returns(UserRegisterRes)
-
+	
 }

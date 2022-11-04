@@ -4,15 +4,15 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/yiGmMk/zero-paopao/post/internal/config"
-	"github.com/yiGmMk/zero-paopao/post/internal/handler"
-	"github.com/yiGmMk/zero-paopao/post/internal/svc"
+	"github.com/yiGmMk/zero-paopao/api/internal/config"
+	"github.com/yiGmMk/zero-paopao/api/internal/handler"
+	"github.com/yiGmMk/zero-paopao/api/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
 )
 
-var configFile = flag.String("f", "etc/post-api.yaml", "the config file")
+var configFile = flag.String("f", "etc/api.yaml", "the config file")
 
 func main() {
 	flag.Parse()

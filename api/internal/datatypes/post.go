@@ -3,8 +3,8 @@ package datatypes
 import (
 	"strings"
 
+	"github.com/yiGmMk/zero-paopao/api/internal/types"
 	"github.com/yiGmMk/zero-paopao/model"
-	"github.com/yiGmMk/zero-paopao/post/internal/types"
 )
 
 func PostFormat(p *model.PPost) *types.PostFormated {

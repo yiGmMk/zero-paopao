@@ -6,8 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/pkg/errors"
-	"github.com/yiGmMk/zero-paopao/post/internal/svc"
-	"github.com/yiGmMk/zero-paopao/post/internal/types"
+	"github.com/yiGmMk/zero-paopao/api/internal/svc"
+	"github.com/yiGmMk/zero-paopao/api/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

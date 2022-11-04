@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/yiGmMk/zero-paopao/post/internal/config"
+	"github.com/yiGmMk/zero-paopao/api/internal/config"
 )
 
 func GetPageOffset(page, pageSize int, config *config.Config) (offset, limit int) {

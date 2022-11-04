@@ -42,7 +42,7 @@
         ],
         "requestBody": {},
         "tags": [
-          "post-api"
+          "api"
         ]
       }
     },
@@ -88,7 +88,7 @@
         ],
         "requestBody": {},
         "tags": [
-          "post-api"
+          "api"
         ]
       }
     },
@@ -121,7 +121,7 @@
         ],
         "requestBody": {},
         "tags": [
-          "post-api"
+          "api"
         ]
       }
     }

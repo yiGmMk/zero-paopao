@@ -1,8 +1,8 @@
 package svc
 
 import (
+	"github.com/yiGmMk/zero-paopao/api/internal/config"
 	"github.com/yiGmMk/zero-paopao/model"
-	"github.com/yiGmMk/zero-paopao/post/internal/config"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 

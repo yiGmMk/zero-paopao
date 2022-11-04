@@ -6,12 +6,12 @@ import (
 	"github.com/Masterminds/squirrel"
 
 	"github.com/jinzhu/copier"
+	"github.com/yiGmMk/zero-paopao/api/internal/svc"
+	"github.com/yiGmMk/zero-paopao/api/internal/types"
 	"github.com/yiGmMk/zero-paopao/model"
-	"github.com/yiGmMk/zero-paopao/post/internal/svc"
-	"github.com/yiGmMk/zero-paopao/post/internal/types"
 
-	"github.com/yiGmMk/zero-paopao/post/internal/datatypes"
-	"github.com/yiGmMk/zero-paopao/post/pkg/app"
+	"github.com/yiGmMk/zero-paopao/api/internal/datatypes"
+	"github.com/yiGmMk/zero-paopao/api/pkg/app"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 

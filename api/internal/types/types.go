@@ -94,7 +94,7 @@ type PTag struct {
 
 type UserRegisterReq struct {
 	Username string `json:"username" valid:"required"`
-	Password string `json:"password"`
+	Password string `json:"password" valid:"required"`
 }
 
 type UserRegisterRes struct {
