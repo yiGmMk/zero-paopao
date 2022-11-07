@@ -2,12 +2,14 @@ package logic
 
 import (
 	"context"
-	"regexp"
-	"unicode/utf8"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/yiGmMk/zero-paopao/api/internal/datatypes"
 	"github.com/yiGmMk/zero-paopao/api/internal/svc"
 	"github.com/yiGmMk/zero-paopao/api/internal/types"
+	"github.com/yiGmMk/zero-paopao/api/pkg/errcode"
+	"github.com/yiGmMk/zero-paopao/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -26,31 +28,51 @@ func NewUserRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *User
 	}
 }
 
-// ValidUsername 验证用户
-func ValidUsername(username string) error {
-	// 检测用户是否合规
-	if utf8.RuneCountInString(username) < 3 || utf8.RuneCountInString(username) > 12 {
-		return errors.Errorf("errcode.UsernameLengthLimit")
-	}
-
-	if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(username) {
-		return errors.Errorf("errcode.UsernameCharLimit")
-	}
-
-	// 重复检查
-	// user, _ := ds.GetUserByUsername(username)
-
-	// if user.Model != nil && user.ID > 0 {
-	// 	return errcode.UsernameHasExisted
-	// }
-
-	return nil
-}
-
 func (l *UserRegisterLogic) UserRegister(req *types.UserRegisterReq) (
 	resp *types.UserRegisterRes, err error) {
+	// 用户名校验
+	err = ValidUsername(req.Username)
+	if err != nil {
+		return nil, err
+	}
+	exist, err := l.svcCtx.CheckIfUsernameExist(l.ctx, req.Username)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, errcode.UsernameHasExisted
+	}
 
-	resp = &types.UserRegisterRes{}
+	err = CheckPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
 
+	password, salt := EncryptPasswordAndSalt(req.Password)
+	user := &model.PUser{
+		Nickname:   req.Username,
+		Username:   req.Username,
+		Password:   password,
+		Salt:       salt,
+		Status:     datatypes.UserStatusNormal,
+		CreatedOn:  time.Now().Unix(),
+		ModifiedOn: time.Now().Unix(),
+		Avatar:     GetRandomAvatar(),
+	}
+	addRes, err := l.svcCtx.UserModel.Insert(l.ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if num, err := addRes.RowsAffected(); err == nil && num <= 0 {
+		return nil, errors.Errorf("注册失败")
+	}
+	userid, err := addRes.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	resp = &types.UserRegisterRes{
+		Id:       userid,
+		Username: req.Username,
+	}
 	return
 }

@@ -14,7 +14,7 @@ type PagerProps {
 
 type (
 	GetPostsReq {
-		Query    string `form:"query,omitempty"`
+		Query    string `form:"query,optional"`
 		Type     string `form:"type"`
 		Page     int    `form:"page"`
 		PageSize int    `form:"page_size"`
@@ -131,6 +131,6 @@ service api {
 		summary: 注册
 	)
 	@handler UserRegister
-	post /v1/auth/regiter(UserRegisterReq) returns(UserRegisterRes)
+	post /v1/auth/register(UserRegisterReq) returns(UserRegisterRes)
 	
 }

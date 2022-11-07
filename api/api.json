@@ -4,7 +4,7 @@
     "title": "",
     "version": ""
   },
-  "host": "172.28.192.100:8008",
+  "host": "172.22.173.77:8008",
   "basePath": "/",
   "schemes": [
     "http",
@@ -17,7 +17,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/auth/regiter": {
+    "/v1/auth/register": {
       "post": {
         "summary": "注册",
         "operationId": "UserRegister",
@@ -62,7 +62,7 @@
           {
             "name": "query",
             "in": "query",
-            "required": true,
+            "required": false,
             "type": "string"
           },
           {
@@ -147,7 +147,6 @@
       },
       "title": "GetPostsReq",
       "required": [
-        "query",
         "type",
         "page",
         "page_size"

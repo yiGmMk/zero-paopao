@@ -8,3 +8,8 @@ type UserFormated struct {
 	Avatar   string `json:"avatar"`
 	IsAdmin  bool   `json:"is_admin"`
 }
+
+const (
+	UserStatusNormal int64 = iota + 1
+	UserStatusClosed
+)

@@ -8,7 +8,7 @@ type PagerProps struct {
 }
 
 type GetPostsReq struct {
-	Query    string `form:"query,omitempty"`
+	Query    string `form:"query,optional"`
 	Type     string `form:"type"`
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`

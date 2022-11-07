@@ -1,6 +1,6 @@
 # zero-paopao
 
-paopao-ce implement by go-zero
+paopao-ce implement by go-zero & vue3 & typescript
 
 ## reference
 
