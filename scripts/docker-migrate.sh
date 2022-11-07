@@ -3,7 +3,6 @@
 # 当前路径
 sh_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-
 # 获取docker
 # 没有设置network的可用这么取,docker inspect --format '{{ .NetworkSettings.Networks.IPAddress }}' container名称或id
 # 这里使用名称 mysql-master
@@ -21,4 +20,4 @@ echo 容器ip+端口: $ip_port
 # 参考 https://github.com/golang-migrate/migrate
 # mysql://user:password@tcp(host:port)/dbname?query
 # run --rm  运行结束后删除container
-docker run --rm -v $sh_dir/migrations:/migrations --network host migrate/migrate -path=/migrations/ -database=mysql://zero-ai-user:$psw@tcp$ip_port/zero-ai up
+docker run --rm -v $sh_dir/migrations:/migrations --network host migrate/migrate -path=/migrations/ -database=mysql://paopao:$psw@tcp$ip_port/paopao up
