@@ -7,7 +7,9 @@ docker rmi $imgid
 localAddress=$(ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:")
 echo "local_address" $localAddress
 
-sed -i 's/127.0.0.1/'$localAddress'/' ./.env.local
+cp .env .env.local
+
+sed -i 's/api.paopao.info/'$localAddress'/' ./.env.local
 
 yarn build
 
