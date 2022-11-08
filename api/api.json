@@ -17,6 +17,62 @@
     "application/json"
   ],
   "paths": {
+    "/info": {
+      "post": {
+        "summary": ":",
+        "operationId": "Info",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/InfoResp"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InfoReq"
+            }
+          }
+        ],
+        "requestBody": {},
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "summary": "登陆",
+        "operationId": "Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/AuthResp"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AuthReq"
+            }
+          }
+        ],
+        "requestBody": {},
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/v1/auth/register": {
       "post": {
         "summary": "注册",
@@ -127,6 +183,34 @@
     }
   },
   "definitions": {
+    "AuthReq": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "title": "AuthReq",
+      "required": [
+        "username",
+        "password"
+      ]
+    },
+    "AuthResp": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "title": "AuthResp",
+      "required": [
+        "token"
+      ]
+    },
     "GetPostsReq": {
       "type": "object",
       "properties": {
@@ -210,6 +294,30 @@
         "code",
         "msg",
         "data"
+      ]
+    },
+    "InfoReq": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      },
+      "title": "InfoReq",
+      "required": [
+        "type"
+      ]
+    },
+    "InfoResp": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "title": "InfoResp",
+      "required": [
+        "value"
       ]
     },
     "PTag": {

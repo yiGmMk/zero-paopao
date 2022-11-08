@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pPostCollectionFieldNames          = builder.RawFieldNames(&PPostCollection{})
 	pPostCollectionRows                = strings.Join(pPostCollectionFieldNames, ",")
-	pPostCollectionRowsExpectAutoSet   = strings.Join(stringx.Remove(pPostCollectionFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
-	pPostCollectionRowsWithPlaceHolder = strings.Join(stringx.Remove(pPostCollectionFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+	pPostCollectionRowsExpectAutoSet   = strings.Join(stringx.Remove(pPostCollectionFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), ",")
+	pPostCollectionRowsWithPlaceHolder = strings.Join(stringx.Remove(pPostCollectionFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), "=?,") + "=?"
+
+	cachePaopaoPPostCollectionIdPrefix = "cache:paopao:pPostCollection:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPPostCollectionModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -45,23 +48,29 @@ type (
 	}
 )
 
-func newPPostCollectionModel(conn sqlx.SqlConn) *defaultPPostCollectionModel {
+func newPPostCollectionModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPPostCollectionModel {
 	return &defaultPPostCollectionModel{
-		conn:  conn,
-		table: "`p_post_collection`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_post_collection`",
 	}
 }
 
 func (m *defaultPPostCollectionModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPPostCollectionIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostCollectionIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPPostCollectionIdKey)
 	return err
 }
 
 func (m *defaultPPostCollectionModel) FindOne(ctx context.Context, id int64) (*PPostCollection, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostCollectionRows, m.table)
+	paopaoPPostCollectionIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostCollectionIdPrefix, id)
 	var resp PPostCollection
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPPostCollectionIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostCollectionRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -73,15 +82,30 @@ func (m *defaultPPostCollectionModel) FindOne(ctx context.Context, id int64) (*P
 }
 
 func (m *defaultPPostCollectionModel) Insert(ctx context.Context, data *PPostCollection) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, pPostCollectionRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPPostCollectionIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostCollectionIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, pPostCollectionRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPPostCollectionIdKey)
 	return ret, err
 }
 
 func (m *defaultPPostCollectionModel) Update(ctx context.Context, data *PPostCollection) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostCollectionRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPPostCollectionIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostCollectionIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostCollectionRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPPostCollectionIdKey)
 	return err
+}
+
+func (m *defaultPPostCollectionModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPPostCollectionIdPrefix, primary)
+}
+
+func (m *defaultPPostCollectionModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostCollectionRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPPostCollectionModel) tableName() string {

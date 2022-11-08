@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	schemaMigrationsFieldNames          = builder.RawFieldNames(&SchemaMigrations{})
 	schemaMigrationsRows                = strings.Join(schemaMigrationsFieldNames, ",")
-	schemaMigrationsRowsExpectAutoSet   = strings.Join(stringx.Remove(schemaMigrationsFieldNames, "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), ",")
-	schemaMigrationsRowsWithPlaceHolder = strings.Join(stringx.Remove(schemaMigrationsFieldNames, "`version`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), "=?,") + "=?"
+	schemaMigrationsRowsExpectAutoSet   = strings.Join(stringx.Remove(schemaMigrationsFieldNames, "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), ",")
+	schemaMigrationsRowsWithPlaceHolder = strings.Join(stringx.Remove(schemaMigrationsFieldNames, "`version`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), "=?,") + "=?"
+
+	cachePaopaoSchemaMigrationsVersionPrefix = "cache:paopao:schemaMigrations:version:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultSchemaMigrationsModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -40,23 +43,29 @@ type (
 	}
 )
 
-func newSchemaMigrationsModel(conn sqlx.SqlConn) *defaultSchemaMigrationsModel {
+func newSchemaMigrationsModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultSchemaMigrationsModel {
 	return &defaultSchemaMigrationsModel{
-		conn:  conn,
-		table: "`schema_migrations`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`schema_migrations`",
 	}
 }
 
 func (m *defaultSchemaMigrationsModel) Delete(ctx context.Context, version int64) error {
-	query := fmt.Sprintf("delete from %s where `version` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, version)
+	paopaoSchemaMigrationsVersionKey := fmt.Sprintf("%s%v", cachePaopaoSchemaMigrationsVersionPrefix, version)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `version` = ?", m.table)
+		return conn.ExecCtx(ctx, query, version)
+	}, paopaoSchemaMigrationsVersionKey)
 	return err
 }
 
 func (m *defaultSchemaMigrationsModel) FindOne(ctx context.Context, version int64) (*SchemaMigrations, error) {
-	query := fmt.Sprintf("select %s from %s where `version` = ? limit 1", schemaMigrationsRows, m.table)
+	paopaoSchemaMigrationsVersionKey := fmt.Sprintf("%s%v", cachePaopaoSchemaMigrationsVersionPrefix, version)
 	var resp SchemaMigrations
-	err := m.conn.QueryRowCtx(ctx, &resp, query, version)
+	err := m.QueryRowCtx(ctx, &resp, paopaoSchemaMigrationsVersionKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `version` = ? limit 1", schemaMigrationsRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, version)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -68,15 +77,30 @@ func (m *defaultSchemaMigrationsModel) FindOne(ctx context.Context, version int6
 }
 
 func (m *defaultSchemaMigrationsModel) Insert(ctx context.Context, data *SchemaMigrations) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?)", m.table, schemaMigrationsRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Version, data.Dirty)
+	paopaoSchemaMigrationsVersionKey := fmt.Sprintf("%s%v", cachePaopaoSchemaMigrationsVersionPrefix, data.Version)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?)", m.table, schemaMigrationsRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Version, data.Dirty)
+	}, paopaoSchemaMigrationsVersionKey)
 	return ret, err
 }
 
 func (m *defaultSchemaMigrationsModel) Update(ctx context.Context, data *SchemaMigrations) error {
-	query := fmt.Sprintf("update %s set %s where `version` = ?", m.table, schemaMigrationsRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.Dirty, data.Version)
+	paopaoSchemaMigrationsVersionKey := fmt.Sprintf("%s%v", cachePaopaoSchemaMigrationsVersionPrefix, data.Version)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `version` = ?", m.table, schemaMigrationsRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.Dirty, data.Version)
+	}, paopaoSchemaMigrationsVersionKey)
 	return err
+}
+
+func (m *defaultSchemaMigrationsModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoSchemaMigrationsVersionPrefix, primary)
+}
+
+func (m *defaultSchemaMigrationsModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `version` = ? limit 1", schemaMigrationsRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultSchemaMigrationsModel) tableName() string {

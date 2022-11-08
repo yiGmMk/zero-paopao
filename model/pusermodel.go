@@ -5,6 +5,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -25,9 +26,9 @@ type (
 )
 
 // NewPUserModel returns a model for the database table.
-func NewPUserModel(conn sqlx.SqlConn) PUserModel {
+func NewPUserModel(conn sqlx.SqlConn, cache cache.CacheConf) PUserModel {
 	return &customPUserModel{
-		defaultPUserModel: newPUserModel(conn),
+		defaultPUserModel: newPUserModel(conn, cache),
 	}
 }
 
@@ -47,7 +48,7 @@ func (m *defaultPUserModel) Fetch(ctx context.Context, rowBuilder squirrel.Selec
 	}
 
 	var resp []*PUser
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil

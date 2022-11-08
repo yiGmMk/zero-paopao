@@ -93,11 +93,28 @@ type PTag struct {
 }
 
 type UserRegisterReq struct {
-	Username string `json:"username" valid:"required"`
-	Password string `json:"password" valid:"required"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type UserRegisterRes struct {
 	Id       int64  `json:"id"`
 	Username string `json:"username"`
+}
+
+type AuthReq struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type AuthResp struct {
+	Token string `json:"token"`
+}
+
+type InfoReq struct {
+	Type string `json:"type"`
+}
+
+type InfoResp struct {
+	Value string `json:"value"`
 }

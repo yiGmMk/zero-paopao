@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewPWalletRechargeModel returns a model for the database table.
-func NewPWalletRechargeModel(conn sqlx.SqlConn) PWalletRechargeModel {
+func NewPWalletRechargeModel(conn sqlx.SqlConn, cache cache.CacheConf) PWalletRechargeModel {
 	return &customPWalletRechargeModel{
-		defaultPWalletRechargeModel: newPWalletRechargeModel(conn),
+		defaultPWalletRechargeModel: newPWalletRechargeModel(conn, cache),
 	}
 }

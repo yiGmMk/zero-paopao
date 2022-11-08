@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewPPostCollectionModel returns a model for the database table.
-func NewPPostCollectionModel(conn sqlx.SqlConn) PPostCollectionModel {
+func NewPPostCollectionModel(conn sqlx.SqlConn, cache cache.CacheConf) PPostCollectionModel {
 	return &customPPostCollectionModel{
-		defaultPPostCollectionModel: newPPostCollectionModel(conn),
+		defaultPPostCollectionModel: newPPostCollectionModel(conn, cache),
 	}
 }

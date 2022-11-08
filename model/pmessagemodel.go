@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewPMessageModel returns a model for the database table.
-func NewPMessageModel(conn sqlx.SqlConn) PMessageModel {
+func NewPMessageModel(conn sqlx.SqlConn, cache cache.CacheConf) PMessageModel {
 	return &customPMessageModel{
-		defaultPMessageModel: newPMessageModel(conn),
+		defaultPMessageModel: newPMessageModel(conn, cache),
 	}
 }

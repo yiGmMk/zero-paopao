@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -19,6 +20,8 @@ var (
 	pPostAttachmentBillRows                = strings.Join(pPostAttachmentBillFieldNames, ",")
 	pPostAttachmentBillRowsExpectAutoSet   = strings.Join(stringx.Remove(pPostAttachmentBillFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
 	pPostAttachmentBillRowsWithPlaceHolder = strings.Join(stringx.Remove(pPostAttachmentBillFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+
+	cachePaopaoPPostAttachmentBillIdPrefix = "cache:paopao:pPostAttachmentBill:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPPostAttachmentBillModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -46,23 +49,29 @@ type (
 	}
 )
 
-func newPPostAttachmentBillModel(conn sqlx.SqlConn) *defaultPPostAttachmentBillModel {
+func newPPostAttachmentBillModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPPostAttachmentBillModel {
 	return &defaultPPostAttachmentBillModel{
-		conn:  conn,
-		table: "`p_post_attachment_bill`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_post_attachment_bill`",
 	}
 }
 
 func (m *defaultPPostAttachmentBillModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPPostAttachmentBillIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostAttachmentBillIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPPostAttachmentBillIdKey)
 	return err
 }
 
 func (m *defaultPPostAttachmentBillModel) FindOne(ctx context.Context, id int64) (*PPostAttachmentBill, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostAttachmentBillRows, m.table)
+	paopaoPPostAttachmentBillIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostAttachmentBillIdPrefix, id)
 	var resp PPostAttachmentBill
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPPostAttachmentBillIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostAttachmentBillRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -74,15 +83,30 @@ func (m *defaultPPostAttachmentBillModel) FindOne(ctx context.Context, id int64)
 }
 
 func (m *defaultPPostAttachmentBillModel) Insert(ctx context.Context, data *PPostAttachmentBill) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, pPostAttachmentBillRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.PaidAmount, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPPostAttachmentBillIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostAttachmentBillIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, pPostAttachmentBillRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.PaidAmount, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPPostAttachmentBillIdKey)
 	return ret, err
 }
 
 func (m *defaultPPostAttachmentBillModel) Update(ctx context.Context, data *PPostAttachmentBill) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostAttachmentBillRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.PaidAmount, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPPostAttachmentBillIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostAttachmentBillIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostAttachmentBillRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.PaidAmount, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPPostAttachmentBillIdKey)
 	return err
+}
+
+func (m *defaultPPostAttachmentBillModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPPostAttachmentBillIdPrefix, primary)
+}
+
+func (m *defaultPPostAttachmentBillModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostAttachmentBillRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPPostAttachmentBillModel) tableName() string {

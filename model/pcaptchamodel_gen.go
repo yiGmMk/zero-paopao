@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pCaptchaFieldNames          = builder.RawFieldNames(&PCaptcha{})
 	pCaptchaRows                = strings.Join(pCaptchaFieldNames, ",")
-	pCaptchaRowsExpectAutoSet   = strings.Join(stringx.Remove(pCaptchaFieldNames, "`id`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`"), ",")
-	pCaptchaRowsWithPlaceHolder = strings.Join(stringx.Remove(pCaptchaFieldNames, "`id`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`"), "=?,") + "=?"
+	pCaptchaRowsExpectAutoSet   = strings.Join(stringx.Remove(pCaptchaFieldNames, "`id`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), ",")
+	pCaptchaRowsWithPlaceHolder = strings.Join(stringx.Remove(pCaptchaFieldNames, "`id`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), "=?,") + "=?"
+
+	cachePaopaoPCaptchaIdPrefix = "cache:paopao:pCaptcha:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPCaptchaModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -47,23 +50,29 @@ type (
 	}
 )
 
-func newPCaptchaModel(conn sqlx.SqlConn) *defaultPCaptchaModel {
+func newPCaptchaModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPCaptchaModel {
 	return &defaultPCaptchaModel{
-		conn:  conn,
-		table: "`p_captcha`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_captcha`",
 	}
 }
 
 func (m *defaultPCaptchaModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPCaptchaIdKey := fmt.Sprintf("%s%v", cachePaopaoPCaptchaIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPCaptchaIdKey)
 	return err
 }
 
 func (m *defaultPCaptchaModel) FindOne(ctx context.Context, id int64) (*PCaptcha, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCaptchaRows, m.table)
+	paopaoPCaptchaIdKey := fmt.Sprintf("%s%v", cachePaopaoPCaptchaIdPrefix, id)
 	var resp PCaptcha
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPCaptchaIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCaptchaRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -75,15 +84,30 @@ func (m *defaultPCaptchaModel) FindOne(ctx context.Context, id int64) (*PCaptcha
 }
 
 func (m *defaultPCaptchaModel) Insert(ctx context.Context, data *PCaptcha) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, pCaptchaRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Phone, data.Captcha, data.UseTimes, data.ExpiredOn, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPCaptchaIdKey := fmt.Sprintf("%s%v", cachePaopaoPCaptchaIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, pCaptchaRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Phone, data.Captcha, data.UseTimes, data.ExpiredOn, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPCaptchaIdKey)
 	return ret, err
 }
 
 func (m *defaultPCaptchaModel) Update(ctx context.Context, data *PCaptcha) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pCaptchaRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.Phone, data.Captcha, data.UseTimes, data.ExpiredOn, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPCaptchaIdKey := fmt.Sprintf("%s%v", cachePaopaoPCaptchaIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pCaptchaRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.Phone, data.Captcha, data.UseTimes, data.ExpiredOn, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPCaptchaIdKey)
 	return err
+}
+
+func (m *defaultPCaptchaModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPCaptchaIdPrefix, primary)
+}
+
+func (m *defaultPCaptchaModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCaptchaRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPCaptchaModel) tableName() string {

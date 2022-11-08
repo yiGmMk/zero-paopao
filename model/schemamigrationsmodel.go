@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewSchemaMigrationsModel returns a model for the database table.
-func NewSchemaMigrationsModel(conn sqlx.SqlConn) SchemaMigrationsModel {
+func NewSchemaMigrationsModel(conn sqlx.SqlConn, cache cache.CacheConf) SchemaMigrationsModel {
 	return &customSchemaMigrationsModel{
-		defaultSchemaMigrationsModel: newSchemaMigrationsModel(conn),
+		defaultSchemaMigrationsModel: newSchemaMigrationsModel(conn, cache),
 	}
 }

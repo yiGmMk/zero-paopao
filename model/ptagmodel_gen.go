@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,11 @@ import (
 var (
 	pTagFieldNames          = builder.RawFieldNames(&PTag{})
 	pTagRows                = strings.Join(pTagFieldNames, ",")
-	pTagRowsExpectAutoSet   = strings.Join(stringx.Remove(pTagFieldNames, "`id`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`"), ",")
-	pTagRowsWithPlaceHolder = strings.Join(stringx.Remove(pTagFieldNames, "`id`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`"), "=?,") + "=?"
+	pTagRowsExpectAutoSet   = strings.Join(stringx.Remove(pTagFieldNames, "`id`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), ",")
+	pTagRowsWithPlaceHolder = strings.Join(stringx.Remove(pTagFieldNames, "`id`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`"), "=?,") + "=?"
+
+	cachePaopaoPTagIdPrefix  = "cache:paopao:pTag:id:"
+	cachePaopaoPTagTagPrefix = "cache:paopao:pTag:tag:"
 )
 
 type (
@@ -31,7 +35,7 @@ type (
 	}
 
 	defaultPTagModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -47,23 +51,35 @@ type (
 	}
 )
 
-func newPTagModel(conn sqlx.SqlConn) *defaultPTagModel {
+func newPTagModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPTagModel {
 	return &defaultPTagModel{
-		conn:  conn,
-		table: "`p_tag`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_tag`",
 	}
 }
 
 func (m *defaultPTagModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	data, err := m.FindOne(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	paopaoPTagIdKey := fmt.Sprintf("%s%v", cachePaopaoPTagIdPrefix, id)
+	paopaoPTagTagKey := fmt.Sprintf("%s%v", cachePaopaoPTagTagPrefix, data.Tag)
+	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPTagIdKey, paopaoPTagTagKey)
 	return err
 }
 
 func (m *defaultPTagModel) FindOne(ctx context.Context, id int64) (*PTag, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pTagRows, m.table)
+	paopaoPTagIdKey := fmt.Sprintf("%s%v", cachePaopaoPTagIdPrefix, id)
 	var resp PTag
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPTagIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pTagRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -75,9 +91,15 @@ func (m *defaultPTagModel) FindOne(ctx context.Context, id int64) (*PTag, error)
 }
 
 func (m *defaultPTagModel) FindOneByTag(ctx context.Context, tag string) (*PTag, error) {
+	paopaoPTagTagKey := fmt.Sprintf("%s%v", cachePaopaoPTagTagPrefix, tag)
 	var resp PTag
-	query := fmt.Sprintf("select %s from %s where `tag` = ? limit 1", pTagRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, tag)
+	err := m.QueryRowIndexCtx(ctx, &resp, paopaoPTagTagKey, m.formatPrimary, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) (i interface{}, e error) {
+		query := fmt.Sprintf("select %s from %s where `tag` = ? limit 1", pTagRows, m.table)
+		if err := conn.QueryRowCtx(ctx, &resp, query, tag); err != nil {
+			return nil, err
+		}
+		return resp.Id, nil
+	}, m.queryPrimary)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -89,15 +111,37 @@ func (m *defaultPTagModel) FindOneByTag(ctx context.Context, tag string) (*PTag,
 }
 
 func (m *defaultPTagModel) Insert(ctx context.Context, data *PTag) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, pTagRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.UserId, data.Tag, data.QuoteNum, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPTagIdKey := fmt.Sprintf("%s%v", cachePaopaoPTagIdPrefix, data.Id)
+	paopaoPTagTagKey := fmt.Sprintf("%s%v", cachePaopaoPTagTagPrefix, data.Tag)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, pTagRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.UserId, data.Tag, data.QuoteNum, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPTagIdKey, paopaoPTagTagKey)
 	return ret, err
 }
 
 func (m *defaultPTagModel) Update(ctx context.Context, newData *PTag) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pTagRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.UserId, newData.Tag, newData.QuoteNum, newData.CreatedOn, newData.ModifiedOn, newData.DeletedOn, newData.IsDel, newData.Id)
+	data, err := m.FindOne(ctx, newData.Id)
+	if err != nil {
+		return err
+	}
+
+	paopaoPTagIdKey := fmt.Sprintf("%s%v", cachePaopaoPTagIdPrefix, data.Id)
+	paopaoPTagTagKey := fmt.Sprintf("%s%v", cachePaopaoPTagTagPrefix, data.Tag)
+	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pTagRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, newData.UserId, newData.Tag, newData.QuoteNum, newData.CreatedOn, newData.ModifiedOn, newData.DeletedOn, newData.IsDel, newData.Id)
+	}, paopaoPTagIdKey, paopaoPTagTagKey)
 	return err
+}
+
+func (m *defaultPTagModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPTagIdPrefix, primary)
+}
+
+func (m *defaultPTagModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pTagRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPTagModel) tableName() string {

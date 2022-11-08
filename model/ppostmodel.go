@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 
 	"github.com/Masterminds/squirrel"
@@ -26,9 +27,9 @@ type (
 )
 
 // NewPPostModel returns a model for the database table.
-func NewPPostModel(conn sqlx.SqlConn) PPostModel {
+func NewPPostModel(conn sqlx.SqlConn, cache cache.CacheConf) PPostModel {
 	return &customPPostModel{
-		defaultPPostModel: newPPostModel(conn),
+		defaultPPostModel: newPPostModel(conn, cache),
 	}
 }
 
@@ -49,7 +50,7 @@ func (m *defaultPPostModel) Fetch(ctx context.Context, rowBuilder squirrel.Selec
 	}
 
 	var resp []*PPost
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil

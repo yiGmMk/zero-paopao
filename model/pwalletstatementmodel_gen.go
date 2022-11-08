@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pWalletStatementFieldNames          = builder.RawFieldNames(&PWalletStatement{})
 	pWalletStatementRows                = strings.Join(pWalletStatementFieldNames, ",")
-	pWalletStatementRowsExpectAutoSet   = strings.Join(stringx.Remove(pWalletStatementFieldNames, "`id`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`"), ",")
-	pWalletStatementRowsWithPlaceHolder = strings.Join(stringx.Remove(pWalletStatementFieldNames, "`id`", "`update_time`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`"), "=?,") + "=?"
+	pWalletStatementRowsExpectAutoSet   = strings.Join(stringx.Remove(pWalletStatementFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), ",")
+	pWalletStatementRowsWithPlaceHolder = strings.Join(stringx.Remove(pWalletStatementFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), "=?,") + "=?"
+
+	cachePaopaoPWalletStatementIdPrefix = "cache:paopao:pWalletStatement:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPWalletStatementModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -48,23 +51,29 @@ type (
 	}
 )
 
-func newPWalletStatementModel(conn sqlx.SqlConn) *defaultPWalletStatementModel {
+func newPWalletStatementModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPWalletStatementModel {
 	return &defaultPWalletStatementModel{
-		conn:  conn,
-		table: "`p_wallet_statement`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_wallet_statement`",
 	}
 }
 
 func (m *defaultPWalletStatementModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPWalletStatementIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletStatementIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPWalletStatementIdKey)
 	return err
 }
 
 func (m *defaultPWalletStatementModel) FindOne(ctx context.Context, id int64) (*PWalletStatement, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletStatementRows, m.table)
+	paopaoPWalletStatementIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletStatementIdPrefix, id)
 	var resp PWalletStatement
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPWalletStatementIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletStatementRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -76,15 +85,30 @@ func (m *defaultPWalletStatementModel) FindOne(ctx context.Context, id int64) (*
 }
 
 func (m *defaultPWalletStatementModel) Insert(ctx context.Context, data *PWalletStatement) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pWalletStatementRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.UserId, data.ChangeAmount, data.BalanceSnapshot, data.Reason, data.PostId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPWalletStatementIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletStatementIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pWalletStatementRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.UserId, data.ChangeAmount, data.BalanceSnapshot, data.Reason, data.PostId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPWalletStatementIdKey)
 	return ret, err
 }
 
 func (m *defaultPWalletStatementModel) Update(ctx context.Context, data *PWalletStatement) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pWalletStatementRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.UserId, data.ChangeAmount, data.BalanceSnapshot, data.Reason, data.PostId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPWalletStatementIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletStatementIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pWalletStatementRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.UserId, data.ChangeAmount, data.BalanceSnapshot, data.Reason, data.PostId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPWalletStatementIdKey)
 	return err
+}
+
+func (m *defaultPWalletStatementModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPWalletStatementIdPrefix, primary)
+}
+
+func (m *defaultPWalletStatementModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletStatementRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPWalletStatementModel) tableName() string {

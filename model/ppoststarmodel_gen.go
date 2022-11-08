@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pPostStarFieldNames          = builder.RawFieldNames(&PPostStar{})
 	pPostStarRows                = strings.Join(pPostStarFieldNames, ",")
-	pPostStarRowsExpectAutoSet   = strings.Join(stringx.Remove(pPostStarFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
-	pPostStarRowsWithPlaceHolder = strings.Join(stringx.Remove(pPostStarFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+	pPostStarRowsExpectAutoSet   = strings.Join(stringx.Remove(pPostStarFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), ",")
+	pPostStarRowsWithPlaceHolder = strings.Join(stringx.Remove(pPostStarFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), "=?,") + "=?"
+
+	cachePaopaoPPostStarIdPrefix = "cache:paopao:pPostStar:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPPostStarModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -45,23 +48,29 @@ type (
 	}
 )
 
-func newPPostStarModel(conn sqlx.SqlConn) *defaultPPostStarModel {
+func newPPostStarModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPPostStarModel {
 	return &defaultPPostStarModel{
-		conn:  conn,
-		table: "`p_post_star`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_post_star`",
 	}
 }
 
 func (m *defaultPPostStarModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPPostStarIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostStarIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPPostStarIdKey)
 	return err
 }
 
 func (m *defaultPPostStarModel) FindOne(ctx context.Context, id int64) (*PPostStar, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostStarRows, m.table)
+	paopaoPPostStarIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostStarIdPrefix, id)
 	var resp PPostStar
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPPostStarIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostStarRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -73,15 +82,30 @@ func (m *defaultPPostStarModel) FindOne(ctx context.Context, id int64) (*PPostSt
 }
 
 func (m *defaultPPostStarModel) Insert(ctx context.Context, data *PPostStar) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, pPostStarRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPPostStarIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostStarIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, pPostStarRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPPostStarIdKey)
 	return ret, err
 }
 
 func (m *defaultPPostStarModel) Update(ctx context.Context, data *PPostStar) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostStarRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPPostStarIdKey := fmt.Sprintf("%s%v", cachePaopaoPPostStarIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pPostStarRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.PostId, data.UserId, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPPostStarIdKey)
 	return err
+}
+
+func (m *defaultPPostStarModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPPostStarIdPrefix, primary)
+}
+
+func (m *defaultPPostStarModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pPostStarRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPPostStarModel) tableName() string {

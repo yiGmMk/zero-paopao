@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pCommentReplyFieldNames          = builder.RawFieldNames(&PCommentReply{})
 	pCommentReplyRows                = strings.Join(pCommentReplyFieldNames, ",")
-	pCommentReplyRowsExpectAutoSet   = strings.Join(stringx.Remove(pCommentReplyFieldNames, "`id`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`"), ",")
-	pCommentReplyRowsWithPlaceHolder = strings.Join(stringx.Remove(pCommentReplyFieldNames, "`id`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`", "`create_time`"), "=?,") + "=?"
+	pCommentReplyRowsExpectAutoSet   = strings.Join(stringx.Remove(pCommentReplyFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
+	pCommentReplyRowsWithPlaceHolder = strings.Join(stringx.Remove(pCommentReplyFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+
+	cachePaopaoPCommentReplyIdPrefix = "cache:paopao:pCommentReply:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPCommentReplyModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -49,23 +52,29 @@ type (
 	}
 )
 
-func newPCommentReplyModel(conn sqlx.SqlConn) *defaultPCommentReplyModel {
+func newPCommentReplyModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPCommentReplyModel {
 	return &defaultPCommentReplyModel{
-		conn:  conn,
-		table: "`p_comment_reply`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_comment_reply`",
 	}
 }
 
 func (m *defaultPCommentReplyModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPCommentReplyIdKey := fmt.Sprintf("%s%v", cachePaopaoPCommentReplyIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPCommentReplyIdKey)
 	return err
 }
 
 func (m *defaultPCommentReplyModel) FindOne(ctx context.Context, id int64) (*PCommentReply, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCommentReplyRows, m.table)
+	paopaoPCommentReplyIdKey := fmt.Sprintf("%s%v", cachePaopaoPCommentReplyIdPrefix, id)
 	var resp PCommentReply
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPCommentReplyIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCommentReplyRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -77,15 +86,30 @@ func (m *defaultPCommentReplyModel) FindOne(ctx context.Context, id int64) (*PCo
 }
 
 func (m *defaultPCommentReplyModel) Insert(ctx context.Context, data *PCommentReply) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pCommentReplyRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.CommentId, data.UserId, data.AtUserId, data.Content, data.Ip, data.IpLoc, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPCommentReplyIdKey := fmt.Sprintf("%s%v", cachePaopaoPCommentReplyIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pCommentReplyRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.CommentId, data.UserId, data.AtUserId, data.Content, data.Ip, data.IpLoc, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPCommentReplyIdKey)
 	return ret, err
 }
 
 func (m *defaultPCommentReplyModel) Update(ctx context.Context, data *PCommentReply) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pCommentReplyRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.CommentId, data.UserId, data.AtUserId, data.Content, data.Ip, data.IpLoc, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPCommentReplyIdKey := fmt.Sprintf("%s%v", cachePaopaoPCommentReplyIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pCommentReplyRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.CommentId, data.UserId, data.AtUserId, data.Content, data.Ip, data.IpLoc, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPCommentReplyIdKey)
 	return err
+}
+
+func (m *defaultPCommentReplyModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPCommentReplyIdPrefix, primary)
+}
+
+func (m *defaultPCommentReplyModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pCommentReplyRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPCommentReplyModel) tableName() string {

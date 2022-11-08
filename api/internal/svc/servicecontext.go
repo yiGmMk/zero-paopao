@@ -18,9 +18,9 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:           c,
-		PostModel:        model.NewPPostModel(sqlx.NewMysql(c.Mysql.DataSource)),
-		PostContentModel: model.NewPPostContentModel(sqlx.NewMysql(c.Mysql.DataSource)),
-		UserModel:        model.NewPUserModel(sqlx.NewMysql(c.Mysql.DataSource)),
-		TagModel:         model.NewPTagModel(sqlx.NewMysql(c.Mysql.DataSource)),
+		PostModel:        model.NewPPostModel(sqlx.NewMysql(c.Mysql.DataSource), c.CacheRedis),
+		PostContentModel: model.NewPPostContentModel(sqlx.NewMysql(c.Mysql.DataSource), c.CacheRedis),
+		UserModel:        model.NewPUserModel(sqlx.NewMysql(c.Mysql.DataSource), c.CacheRedis),
+		TagModel:         model.NewPTagModel(sqlx.NewMysql(c.Mysql.DataSource), c.CacheRedis),
 	}
 }

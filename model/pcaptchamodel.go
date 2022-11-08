@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewPCaptchaModel returns a model for the database table.
-func NewPCaptchaModel(conn sqlx.SqlConn) PCaptchaModel {
+func NewPCaptchaModel(conn sqlx.SqlConn, cache cache.CacheConf) PCaptchaModel {
 	return &customPCaptchaModel{
-		defaultPCaptchaModel: newPCaptchaModel(conn),
+		defaultPCaptchaModel: newPCaptchaModel(conn, cache),
 	}
 }

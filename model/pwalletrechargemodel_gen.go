@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -17,8 +18,10 @@ import (
 var (
 	pWalletRechargeFieldNames          = builder.RawFieldNames(&PWalletRecharge{})
 	pWalletRechargeRows                = strings.Join(pWalletRechargeFieldNames, ",")
-	pWalletRechargeRowsExpectAutoSet   = strings.Join(stringx.Remove(pWalletRechargeFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
-	pWalletRechargeRowsWithPlaceHolder = strings.Join(stringx.Remove(pWalletRechargeFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+	pWalletRechargeRowsExpectAutoSet   = strings.Join(stringx.Remove(pWalletRechargeFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), ",")
+	pWalletRechargeRowsWithPlaceHolder = strings.Join(stringx.Remove(pWalletRechargeFieldNames, "`id`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`", "`create_at`", "`created_at`"), "=?,") + "=?"
+
+	cachePaopaoPWalletRechargeIdPrefix = "cache:paopao:pWalletRecharge:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPWalletRechargeModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -47,23 +50,29 @@ type (
 	}
 )
 
-func newPWalletRechargeModel(conn sqlx.SqlConn) *defaultPWalletRechargeModel {
+func newPWalletRechargeModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPWalletRechargeModel {
 	return &defaultPWalletRechargeModel{
-		conn:  conn,
-		table: "`p_wallet_recharge`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_wallet_recharge`",
 	}
 }
 
 func (m *defaultPWalletRechargeModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPWalletRechargeIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletRechargeIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPWalletRechargeIdKey)
 	return err
 }
 
 func (m *defaultPWalletRechargeModel) FindOne(ctx context.Context, id int64) (*PWalletRecharge, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletRechargeRows, m.table)
+	paopaoPWalletRechargeIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletRechargeIdPrefix, id)
 	var resp PWalletRecharge
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPWalletRechargeIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletRechargeRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -75,15 +84,30 @@ func (m *defaultPWalletRechargeModel) FindOne(ctx context.Context, id int64) (*P
 }
 
 func (m *defaultPWalletRechargeModel) Insert(ctx context.Context, data *PWalletRecharge) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, pWalletRechargeRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.UserId, data.Amount, data.TradeNo, data.TradeStatus, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPWalletRechargeIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletRechargeIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, pWalletRechargeRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.UserId, data.Amount, data.TradeNo, data.TradeStatus, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPWalletRechargeIdKey)
 	return ret, err
 }
 
 func (m *defaultPWalletRechargeModel) Update(ctx context.Context, data *PWalletRecharge) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pWalletRechargeRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.UserId, data.Amount, data.TradeNo, data.TradeStatus, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPWalletRechargeIdKey := fmt.Sprintf("%s%v", cachePaopaoPWalletRechargeIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pWalletRechargeRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.UserId, data.Amount, data.TradeNo, data.TradeStatus, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPWalletRechargeIdKey)
 	return err
+}
+
+func (m *defaultPWalletRechargeModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPWalletRechargeIdPrefix, primary)
+}
+
+func (m *defaultPWalletRechargeModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pWalletRechargeRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPWalletRechargeModel) tableName() string {

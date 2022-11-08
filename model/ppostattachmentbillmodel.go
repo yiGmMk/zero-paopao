@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -19,8 +20,8 @@ type (
 )
 
 // NewPPostAttachmentBillModel returns a model for the database table.
-func NewPPostAttachmentBillModel(conn sqlx.SqlConn) PPostAttachmentBillModel {
+func NewPPostAttachmentBillModel(conn sqlx.SqlConn, cache cache.CacheConf) PPostAttachmentBillModel {
 	return &customPPostAttachmentBillModel{
-		defaultPPostAttachmentBillModel: newPPostAttachmentBillModel(conn),
+		defaultPPostAttachmentBillModel: newPPostAttachmentBillModel(conn, cache),
 	}
 }

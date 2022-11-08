@@ -105,8 +105,8 @@ type PTag {
 type (
 	// 注册
 	UserRegisterReq {
-		Username string `json:"username" valid:"required"`
-		Password string `json:"password" valid:"required"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 	UserRegisterRes {
 		Id       int64  `json:"id"`
@@ -114,6 +114,16 @@ type (
 	}
 )
 
+type (
+	AuthReq {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	AuthResp {
+		Token string `json:"token"`
+	}
+)
 service api {
 	@doc(
 		summary: 获取动态
@@ -133,4 +143,30 @@ service api {
 	@handler UserRegister
 	post /v1/auth/register(UserRegisterReq) returns(UserRegisterRes)
 	
+	@doc(
+		summary: 登陆
+	)
+	@handler Login
+	post /v1/auth/login(AuthReq) returns(AuthResp)
+}
+
+type (
+	InfoReq {
+		Type string `json:"type"`
+	}
+	InfoResp {
+		Value string `json:"value"`
+	}
+)
+
+//need login
+@server(
+	jwt: JwtAuth
+)
+service api{
+	@doc(
+		summary:
+	)
+	@handler Info
+	post /info(InfoReq) returns(InfoResp)
 }

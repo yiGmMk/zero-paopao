@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -19,6 +20,8 @@ var (
 	pAttachmentRows                = strings.Join(pAttachmentFieldNames, ",")
 	pAttachmentRowsExpectAutoSet   = strings.Join(stringx.Remove(pAttachmentFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), ",")
 	pAttachmentRowsWithPlaceHolder = strings.Join(stringx.Remove(pAttachmentFieldNames, "`id`", "`create_at`", "`created_at`", "`create_time`", "`update_at`", "`updated_at`", "`update_time`"), "=?,") + "=?"
+
+	cachePaopaoPAttachmentIdPrefix = "cache:paopao:pAttachment:id:"
 )
 
 type (
@@ -30,7 +33,7 @@ type (
 	}
 
 	defaultPAttachmentModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -49,23 +52,29 @@ type (
 	}
 )
 
-func newPAttachmentModel(conn sqlx.SqlConn) *defaultPAttachmentModel {
+func newPAttachmentModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultPAttachmentModel {
 	return &defaultPAttachmentModel{
-		conn:  conn,
-		table: "`p_attachment`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`p_attachment`",
 	}
 }
 
 func (m *defaultPAttachmentModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	paopaoPAttachmentIdKey := fmt.Sprintf("%s%v", cachePaopaoPAttachmentIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, paopaoPAttachmentIdKey)
 	return err
 }
 
 func (m *defaultPAttachmentModel) FindOne(ctx context.Context, id int64) (*PAttachment, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pAttachmentRows, m.table)
+	paopaoPAttachmentIdKey := fmt.Sprintf("%s%v", cachePaopaoPAttachmentIdPrefix, id)
 	var resp PAttachment
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.QueryRowCtx(ctx, &resp, paopaoPAttachmentIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pAttachmentRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -77,15 +86,30 @@ func (m *defaultPAttachmentModel) FindOne(ctx context.Context, id int64) (*PAtta
 }
 
 func (m *defaultPAttachmentModel) Insert(ctx context.Context, data *PAttachment) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pAttachmentRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.UserId, data.FileSize, data.ImgWidth, data.ImgHeight, data.Type, data.Content, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	paopaoPAttachmentIdKey := fmt.Sprintf("%s%v", cachePaopaoPAttachmentIdPrefix, data.Id)
+	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, pAttachmentRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.UserId, data.FileSize, data.ImgWidth, data.ImgHeight, data.Type, data.Content, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel)
+	}, paopaoPAttachmentIdKey)
 	return ret, err
 }
 
 func (m *defaultPAttachmentModel) Update(ctx context.Context, data *PAttachment) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pAttachmentRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.UserId, data.FileSize, data.ImgWidth, data.ImgHeight, data.Type, data.Content, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	paopaoPAttachmentIdKey := fmt.Sprintf("%s%v", cachePaopaoPAttachmentIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, pAttachmentRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.UserId, data.FileSize, data.ImgWidth, data.ImgHeight, data.Type, data.Content, data.CreatedOn, data.ModifiedOn, data.DeletedOn, data.IsDel, data.Id)
+	}, paopaoPAttachmentIdKey)
 	return err
+}
+
+func (m *defaultPAttachmentModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cachePaopaoPAttachmentIdPrefix, primary)
+}
+
+func (m *defaultPAttachmentModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", pAttachmentRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultPAttachmentModel) tableName() string {

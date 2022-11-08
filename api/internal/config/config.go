@@ -19,4 +19,9 @@ type Config struct {
 		DefaultPageSize       int
 		MaxPageSize           int
 	}
+
+	JwtAuth struct {
+		AccessSecret string
+		AccessExpire int64
+	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -25,9 +26,9 @@ type (
 )
 
 // NewPTagModel returns a model for the database table.
-func NewPTagModel(conn sqlx.SqlConn) PTagModel {
+func NewPTagModel(conn sqlx.SqlConn, cache cache.CacheConf) PTagModel {
 	return &customPTagModel{
-		defaultPTagModel: newPTagModel(conn),
+		defaultPTagModel: newPTagModel(conn, cache),
 	}
 }
 
@@ -46,7 +47,7 @@ func (m *defaultPTagModel) Fetch(ctx context.Context, rowBuilder squirrel.Select
 	}
 
 	var resp []*PTag
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil

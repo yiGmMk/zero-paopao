@@ -5,6 +5,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -25,9 +26,9 @@ type (
 )
 
 // NewPPostContentModel returns a model for the database table.
-func NewPPostContentModel(conn sqlx.SqlConn) PPostContentModel {
+func NewPPostContentModel(conn sqlx.SqlConn, cache cache.CacheConf) PPostContentModel {
 	return &customPPostContentModel{
-		defaultPPostContentModel: newPPostContentModel(conn),
+		defaultPPostContentModel: newPPostContentModel(conn, cache),
 	}
 }
 
@@ -48,7 +49,7 @@ func (m *defaultPPostContentModel) Fetch(ctx context.Context, rowBuilder squirre
 	}
 
 	var resp []*PPostContent
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
