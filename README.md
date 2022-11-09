@@ -1,5 +1,20 @@
 # zero-paopao
 
+- [zero-paopao](#zero-paopao)
+  - [reference](#reference)
+  - [开发](#开发)
+    - [后端](#后端)
+      - [工具准备](#工具准备)
+      - [model 生成](#model-生成)
+      - [后端服务+swagger](#后端服务swagger)
+    - [前端](#前端)
+      - [环境准备](#环境准备)
+      - [构建部署](#构建部署)
+      - [参考](#参考)
+  - [issue](#issue)
+    - [go](#go)
+    - [fish config](#fish-config)
+
 paopao-ce implement by go-zero & vue3 & typescript
 
 ## reference
@@ -58,7 +73,7 @@ paopao-ce implement by go-zero & vue3 & typescript
    npm install -g yarn --registry=https://registry.npmmirror.com
    #设置镜像源 开源镜像 https://npmmirror.com/
    yarn config set registry https://registry.npmmirror.com -g
-   yarn config set sass_binary_site http://cdn.npm.taobao.org/dist/node-sass -g
+   yarn config set sass_binary_site "https://npmmirror.com/mirrors/node-sass/" -g
 
    #可选,安装cnpm
    npm install -g cnpm --registry=https://registry.npmmirror.com
