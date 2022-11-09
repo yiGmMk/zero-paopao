@@ -57,7 +57,7 @@ paopao-ce implement by go-zero & vue3 & typescript
    #安装yarn
    npm install -g yarn --registry=https://registry.npmmirror.com
    #设置镜像源 开源镜像 https://npmmirror.com/
-   yarn config set registry https://registry.npm.taobao.org -g
+   yarn config set registry https://registry.npmmirror.com -g
    yarn config set sass_binary_site http://cdn.npm.taobao.org/dist/node-sass -g
 
    #可选,安装cnpm
