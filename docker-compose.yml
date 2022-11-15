@@ -30,13 +30,13 @@ services:
     networks:
       - paopao-network
     volumes:
-      - ./scripts/migration:/etc/migrations
+      - ./scripts/migration/mysql:/etc/migrations
     command:
       [
         "-source",
         "file:///etc/migrations",
         "-database",
-        "mysql://paopao:paopao@tcp(paopao-network:3306)/paopao",
+        "mysql://paopao:paopao@tcp(db:3306)/paopao",
         "up"
       ]
     links:
