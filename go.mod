@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/Masterminds/squirrel v1.5.3
-	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/pkg/errors v0.9.1
